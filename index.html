@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>보험 가입금액 계산기</title>
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f4f4;
+    margin: 40px;
+    color: #333;
+}
+.container {
+    max-width: 600px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+h1 {
+    color: #333;
+}
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0 20px;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+button {
+    width: 100%;
+    background-color: #4CAF50;
+    color: white;
+    padding: 14px 20px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+button:hover {
+    background-color: #45a049;
+}
+#result, .comparison, .exchangeResult {
+    margin-top: 20px;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>보험 가입금액 계산기</h1>
+    <input type="text" id="basic" placeholder="기계약 가입금액">
+    <input type="text" id="samsung" placeholder="삼성생명 가입금액">
+    <input type="text" id="shinhan" placeholder="신한생명 가입금액">
+    <input type="text" id="kyobo" placeholder="교보생명 가입금액">
+    <input type="text" id="met" placeholder="메트라이프 가입금액">
+    <button type="button" onclick="calculateTotal()">계산하기</button>
+    <div id="result"></div>
+    <div class="exchangeResult" id="exchangeResult"></div>
+    <div class="comparison" id="comparison"></div>
+</div>
+<script>
+const exchangeRate = 1300; // 환율: 1달러 = 1300원
+
+function parseInput(input, isDollar = false) {
+    let total = 0;
+    if (!input) return total; // 입력이 없는 경우 0 반환
+    if (isDollar) {
+        total = parseFloat(input.replace(/[\$,]/g, '')) * exchangeRate;
+    } else {
+        const units = {"억": 100000000, "천": 1000, "만": 10000};
+        (input.match(/\d+(\.\d+)?(억|천|만)?/g) || []).forEach(part => {
+            let [number, unit] = part.split(/(억|천|만)/);
+            number = parseFloat(number);
+            unit = units[unit] || 1;
+            total += number * unit;
+        });
+    }
+    return total;
+}
+
+function formatCurrency(value) {
+    if (value === 0) return "0";
+    const units = ["억", "만", "천"];
+    const unitValues = [100000000, 10000, 1000];
+    let result = "";
+    for (let i = 0; i < unitValues.length; i++) {
+        const unitValue = unitValues[i];
+        const unit = units[i];
+        if (value >= unitValue) {
+            const num = Math.floor(value / unitValue);
+            value -= num * unitValue;
+            result += `${num}${unit} `;
+        }
+    }
+    if (value > 0) result += `${Math.floor(value / 10000)}만 `;
+    return result.trim();
+}
+
+function calculateTotal() {
+    const inputs = [
+        parseInput(document.getElementById('basic').value),
+        parseInput(document.getElementById('samsung').value),
+        parseInput(document.getElementById('shinhan').value),
+        parseInput(document.getElementById('kyobo').value)
+    ];
+    const metInput = document.getElementById('met').value;
+    const metTotal = parseInput(metInput, true);
+    const total = inputs.reduce((acc, curr) => acc + curr, 0) + metTotal;
+    document.getElementById('result').innerText = `총 가입금액: ${formatCurrency(total)}`;
+
+    if (metInput) { // 메트라이프 입력이 있을 경우에만 환전 결과 표시
+        document.getElementById('exchangeResult').innerText = `메트라이프 환전 금액: ${formatCurrency(metTotal)} (환율: 1달러 = ${exchangeRate}원)`;
+    } else {
+        document.getElementById('exchangeResult').innerText = "";
+    }
+    compareWithTargets(total, [3000000000, 4000000000]);
+}
+
+function compareWithTargets(total, targets) {
+    const comparisonElement = document.getElementById('comparison');
+    comparisonElement.innerHTML = ""; // 이전 비교 결과를 클리어
+    targets.forEach(target => {
+        const difference = total - target;
+        const formattedDiff = formatCurrency(Math.abs(difference));
+        const message = difference === 0
+            ? `정확히 일치합니다.`
+            : `${formatCurrency(target)} 대비 ${difference > 0 ? '초과: ' : '부족: '}${formattedDiff}`;
+        comparisonElement.innerHTML += `<div>${message}</div>`;
+    });
+}
+</script>
+</body>
+</html>
